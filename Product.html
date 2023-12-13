@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Product Adder</title>
+</head>
+
+<body>
+    <form id="myForm">
+        <label for="sp">Selling Price:</label>
+        <input type="number" id="sp" name="SellingPrice">
+        <label for="productName">Product Name:</label>
+        <input type="text" id="productName" name="ProductName" required>
+        <button type="submit" id="btn">Add Product</button>
+    </form>
+    <h2>Products</h2>
+    <div id="productlist"></div>
+    <h4>Total value worth of products: <span id="totalValue">0</span></h4>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Fetch existing products on page load
+            axios.get('https://crudcrud.com/api/94fe113204d2477589ddee76581d0fe9/Product')
+                .then(response => {
+                    response.data.forEach(product => {
+                        displayProductDetails(product);
+                        updateTotalValue(parseFloat(product.sp), true);
+                    });
+                })
+                .catch(err => console.log('Error fetching data:', err));
+
+            var formName = document.getElementById('myForm');
+            formName.addEventListener('submit', addProduct);
+
+            function addProduct(event) {
+                event.preventDefault();
+                var productSp = document.getElementById('sp').value;
+                var pName = document.getElementById('productName').value;
+                const newProduct = {
+                    sp: productSp,
+                    productName: pName
+                };
+                axios.post('https://crudcrud.com/api/94fe113204d2477589ddee76581d0fe9/Product', newProduct)
+                    .then(res => {
+                        console.log("Product Details Stored Successfully:", res.data);
+                        displayProductDetails(res.data);
+                        updateTotalValue(parseFloat(res.data.sp), true);
+                        clearForm();
+                    })
+                    .catch(err => console.log('Error storing data:', err));
+            }
+
+            function displayProductDetails(data) {
+                var outputDiv = document.getElementById('productlist');
+                var listItem = document.createElement('li');
+                var deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.setAttribute('data-id', data._id);
+                deleteButton.addEventListener('click', function () {
+                    var dataId = deleteButton.getAttribute('data-id');
+                    listItem.remove();
+                    axios.delete(`https://crudcrud.com/api/94fe113204d2477589ddee76581d0fe9/Product/${dataId}`)
+                        .then(res => {
+                            console.log('Data deleted successfully:', res.data);
+                            updateTotalValue(parseFloat(data.sp), false);
+                        })
+                        .catch(err => console.log('Error deleting data:', err));
+                });
+                var textContentElement = document.createElement('span');
+                textContentElement.textContent = `Selling Price: ${data.sp}, Product Name: ${data.productName}`;
+                listItem.id = data._id;
+                listItem.appendChild(textContentElement);
+                listItem.appendChild(deleteButton);
+                outputDiv.appendChild(listItem);
+            }
+
+            function updateTotalValue(price, isAddition) {
+                var totalValueElement = document.getElementById('totalValue');
+                var currentTotal = parseFloat(totalValueElement.textContent);
+                if (isAddition) {
+                    totalValueElement.textContent = (currentTotal + price).toFixed(2);
+                } else {
+                    totalValueElement.textContent = (currentTotal - price).toFixed(2);
+                }
+            }
+
+            function clearForm() {
+                document.getElementById('sp').value = '';
+                document.getElementById('productName').value = '';
+            }
+        });
+    </script>
+</body>
+
+</html>
